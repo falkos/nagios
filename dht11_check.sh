@@ -1,11 +1,9 @@
 #!/bin/bash
 
-#export LC_NUMERIC=de_DE.UTF
-
 # Get the reading from the sensor and strip the non-number parts
-SENSOR="`/opt/whs/dht11`"
-TEMP="`echo ${SENSOR} | cut -d ':' -f1`"
-HUMIDITY="`echo ${SENSOR} | cut -d ':' -f2`"
+SENSOR="`sudo /opt/whs/dht11`"
+TEMP="`echo ${SENSOR} | cut -d ':' -f1 | awk '{printf "%.0f\n", $1}' `"
+HUMIDITY="`echo ${SENSOR} | cut -d ':' -f2 | awk '{printf "%.0f\n", $1}' `"
 
 
 MODE=${1-HUMIDITY}
@@ -13,17 +11,41 @@ MODE=${1-HUMIDITY}
 
 WARN=${2-40}
 CRIT=${3-50}
+VALUE=0
+
+
+if [ "${CRIT//[0-9]*}" != "" ]; then # If Crit a Number?
+
+        echo "ERROR: The value of CRIT must be a number"
+        exit 2
+
+elif [ "${WARN//[0-9]*}" != "" ]; then # If Warn a Number?
+
+        echo "ERROR: The value of WARN must be a number"
+        exit 2
+
+elif [ "${TEMP}" -eq 0 ]; then # If TEMP a Number?
+
+        echo "ERROR: The value of TEMP must be a number"
+        exit 2
+
+elif [ "${HUMIDITY}" -eq 0  ]; then # If HUMIDITY a Number?
+
+        echo "ERROR: The value of HUMIDITY must be a number"
+        exit 2
+
+fi
 
 
 # Which mode is set?
 if  [ "${MODE}" == "HUMIDITY" ]; then
 
-        VALUE="`/usr/bin/printf "%.0f\n" ${HUMIDITY}`"
+		VALUE=${HUMIDITY}
         TEXT="Humidity is ${VALUE}%"
 
 elif  [ "${MODE}" == "TEMP" ]; then
 
-        VALUE="`/usr/bin/printf "%.0f\n" ${TEMP}`"
+		VALUE=${TEMP}
         TEXT="Temperature is ${VALUE} deg.(C)"
 
 else
@@ -33,28 +55,10 @@ else
         exit 1
 
 fi
-
-
-if [ "${CRIT//[0-9]*}" != "" ]; then # If Crit a Number?
-
-        echo "ERROR: The value of CRIT must be a number"
-        exit 1
-
-
-elif [ "${WARN//[0-9]*}" != "" ]; then # If Warn a Number?
-
-        echo "ERROR: The value of WARN must be a number"
-        exit 1
-
-elif [ "${VALUE//[0-9]*}" != "" ]; then # If Value a Number?
-
-        echo "ERROR: \$VALUE is not a Number"
-        exit 1
-
-fi
    
 
 ### Main Code ###
+
 if [ "${VALUE}" -gt "${CRIT}" ] ; then
 
 
