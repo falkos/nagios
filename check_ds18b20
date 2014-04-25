@@ -1,0 +1,57 @@
+#!/bin/sh
+
+SENSOR=28-0000049ca39d
+tempfile="/tmp/get_temp.tmp"
+
+readin() {
+# readin $sensor $tempfile
+
+  cat "/sys/bus/w1/devices/w1_bus_master1/$1/w1_slave" > $2
+  CRC=`head -n 1 $2 | cut -d " " -f 12`
+  echo ${CRC}
+}
+
+if [ $1 ]
+then
+        SENSOR=$1
+fi
+
+scale=0
+VALUE=""
+
+WARN=${2-40}
+CRIT=${3-50}
+
+CRC=`readin $SENSOR $tempfile`
+
+while [  -z ${VALUE} ] # while stringlength zero
+do
+  while [ ${CRC} != "YES" ]
+  do
+          echo reading...
+          CRC=`readin $sensor $tempfile`
+  done
+  VALUE=`echo "scale=$scale; $(grep 't=' $tempfile | awk -F't=' '{print $2}')/1000" | bc -l`
+done
+
+rm $tempfile
+
+### Main Code ###
+if [ "${VALUE}" -gt "${CRIT}" ] ; then
+
+
+        echo "CRITICAL: Temperature is ${VALUE} deg.(C)"
+        exit 2
+
+elif [ "${VALUE}" -gt "${WARN}" ] ; then
+
+
+        echo "WARNING: Temperature is ${VALUE} deg.(C)"
+        exit 1
+
+else
+
+        echo "OK: Temperature is ${VALUE} deg.(C)"
+        exit 0
+
+fi
